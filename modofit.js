@@ -27,7 +27,7 @@
     // Dónde se insertan las secciones: después del primer elemento que coincida
     MOUNT_AFTER: 'header, .js-head-main, .head-main',
     // Fotos de producto del listado (tema de Tiendanube). Si no aparece la etiqueta, revisá este selector
-    BADGE_SELECTOR: '.js-item-product .js-item-image-container, .js-item-product .item-image, .item-product .item-image',
+    BADGE_SELECTOR: '.js-item-product .js-item-image-container, .js-item-product .item-image, .item-product .item-image, .js-item-product .product-item-image-container',
     // 'banner' = usa el carrusel de imágenes de Tiendanube como portada (si tiene imágenes cargadas)
     // 'texto'  = usa la portada de texto de este código
     HERO: 'banner',
