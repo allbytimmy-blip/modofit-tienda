@@ -517,6 +517,8 @@
   }
 
   function init() {
+    // Mientras se arma la versión para Ipanema, en ese tema no hace nada
+    if (/theme-ipanema/.test(d.body.className) && !window.MF_IPANEMA) return;
     syncPrices();
     if (CFG.SHOW_BAR) bar();
     if (isHome) home();
