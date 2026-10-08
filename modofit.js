@@ -521,6 +521,7 @@
   function init() {
     IPA = /theme-ipanema/.test(d.body.className) || !!d.querySelector('.ns-section');
     if (IPA) d.body.classList.add('mf-ipa');
+    if (/(^|\s)template-home(\s|$)/.test(d.body.className)) isHome = true;
     syncPrices();
     if (CFG.SHOW_BAR) bar();
     if (isHome) home();
