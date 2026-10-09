@@ -578,6 +578,8 @@
     for (i = 0; i < selects[ci].options.length; i++) colors.push(selects[ci].options[i].value);
     for (i = 0; i < cb.length; i++) { var sp = cb[i].querySelector('.btn-variant-content'); hex[cb[i].getAttribute('data-option')] = sp && sp.style.background ? sp.style.backgroundColor || sp.style.background : '#999'; }
     for (i = 0; i < selects[si].options.length; i++) sizes.push(selects[si].options[i].value);
+    var SZ = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+    sizes.sort(function (x, y) { var a1 = SZ.indexOf(String(x).toUpperCase()), b1 = SZ.indexOf(String(y).toUpperCase()); return (a1 < 0 ? 99 : a1) - (b1 < 0 ? 99 : b1); });
     function variant(c, s) { for (var k = 0; k < V.length; k++) if (V[k]['option' + ci] === c && V[k]['option' + si] === s) return V[k]; return null; }
     function ok(c, s) { var v = variant(c, s); return !!(v && v.available !== false); }
     var unit = 0, cmp = 0;
