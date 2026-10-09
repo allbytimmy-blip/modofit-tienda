@@ -420,6 +420,7 @@
     var m = name.match(/x\s?(\d+)/i), units = m ? +m[1] : 0;
     var pfm = box.querySelector('[data-store^="product-form-"]');
     var pk = pkCfg(pfm ? pfm.getAttribute('data-store').replace('product-form-', '') : '');
+    if (pk && priceEl && num(priceEl.textContent) > CFG.PACK_MAX_UNIT) pk = null; // todavía a precio de pack
     if (pk) units = 0;
 
     // Precio por prenda debajo del precio del pack
