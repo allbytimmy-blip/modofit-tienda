@@ -56,7 +56,8 @@
     // En la página se eligen pack, talle y colores; en el carrito no se puede comprar algo que no sea múltiplo de 4.
     // off = % de la promo nativa "Descuento progresivo" de Tiendanube (solo se muestra; el descuento real lo hace la promo).
     PACK_BUILDER: [
-      { id: 357413455, url: '/productos/musculosa-morley-18110/', noun: 'musculosa', nouns: 'musculosas', packs: [4, 8], off: { 8: 4 }, ship: { 8: true } }
+      { id: 357413455, url: '/productos/musculosa-morley-18110/', noun: 'musculosa', nouns: 'musculosas', packs: [4, 8], off: { 8: 4 }, ship: { 8: true } },
+      { id: 357413606, url: '/productos/remera-termica-compresion-x4-1kxls/', noun: 'remera', nouns: 'remeras', shape: 'tee', packs: [4, 8], off: { 8: 3 }, ship: { 8: true } }
     ],
     PACK_STEP: 4,            // el carrito exige múltiplos de esto en los productos del armador
     PACK_MAX_UNIT: 30000,    // seguro: si el precio cargado supera esto, el producto sigue a precio de pack y el armador no se activa
@@ -105,7 +106,7 @@
       try {
         var v = JSON.parse(el.getAttribute('data-variants')), min = 0;
         for (var j = 0; j < v.length; j++) if (v[j].available !== false && v[j].price_number && (!min || v[j].price_number < min)) min = v[j].price_number;
-        if (min && pkCfg(P[i].id) && min <= CFG.PACK_MAX_UNIT) { min = Math.round(min * (CFG.PACK_STEP || 4)); pkLive = true; }
+        if (min && pkCfg(P[i].id) && min <= CFG.PACK_MAX_UNIT) { min = Math.round(min * (CFG.PACK_STEP || 4)); pkLive = true; pkLiveN++; }
         if (min) P[i].x4 = min;
       } catch (e) {}
       // Foto principal del producto, la misma que muestra la tienda
@@ -123,7 +124,7 @@
   var FREE_U = CFG.FREE_SHIPPING_UNITS;
   var FREE_TAIL = FREE_U ? 'llevando ' + FREE_U + ' prendas' : 'desde ' + $m(CFG.FREE_SHIPPING);
   var FREE = 'Envío gratis ' + FREE_TAIL;
-  var pkLive = false; // algún producto del armador ya está a precio por prenda
+  var pkLive = false, pkLiveN = 0; // productos del armador que ya están a precio por prenda
   var PAYS = CFG.CUOTAS ? CFG.CUOTAS + ' cuotas sin interés' : 'Mercado Pago o cuotas';
   var CHECKS = '<div class="mf-checks"><span>' + FREE + '</span><span>Cambio de talle</span><span>' + PAYS + '</span></div>';
 
@@ -290,6 +291,7 @@
       ['¿Y si el talle no me queda?', '<b>Lo cambiamos.</b> Tenés <b>30 días</b> desde que lo recibís, con las prendas sin uso y con etiquetas. Escribinos por WhatsApp con tu número de pedido. <a href="/cambios-y-devoluciones/">Ver cambios y devoluciones</a>'],
       ['¿Cuánto tarda en llegar mi pedido?', 'Preparamos tu pedido en <b>3 a 7 días hábiles</b> y te pasamos el seguimiento apenas sale. Después depende del correo y de tu zona.'],
       ['¿El envío es gratis?', FREE_U ? 'Sí, <b>llevando ' + FREE_U + ' prendas</b>: un pack x8 o dos packs x4. Con un solo pack x4, el costo se calcula en el checkout con tu código postal.' : 'Sí, en compras <b>desde ' + $m(CFG.FREE_SHIPPING) + '</b>, o sea llevando 2 packs. En compras menores, el costo se calcula en el checkout con tu código postal.'],
+      pkLiveN > 1 ? ['¿Puedo combinar colores y talles?', '<b>Sí.</b> Armás tu pack x4 o x8 eligiendo el color y el talle de cada prenda, en musculosas y en térmicas.'] :
       pkLive ? ['¿Puedo combinar colores y talles?', 'En las <b>musculosas, sí</b>: armás tu pack x4 o x8 eligiendo el color y el talle de cada una. Las térmicas vienen de a 4 del mismo color y talle.'] : CFG.MIX_COLORS ? ['¿Puedo combinar colores en el pack?', 'Sí, <b>combinás colores como quieras</b> dentro del mismo pack.'] : ['¿Cómo es el pack?', 'Son <b>4 prendas del mismo color y talle</b>. Si querés distintos colores, sumá un pack de cada uno: con 2 packs el envío es gratis.'],
       ['¿Qué medios de pago aceptan?', '<b>Mercado Pago, tarjeta en cuotas' + (CFG.CUOTAS ? ' (' + CFG.CUOTAS + ' sin interés)' : '') + ' y transferencia' + (CFG.TRANSFER_PCT ? ' con ' + CFG.TRANSFER_PCT + '% off' : '') + '.</b> Elegís el que prefieras en el checkout.'],
       ['¿Es seguro comprar en Modo Fit?', 'Sí. Somos una marca argentina, los pagos se procesan por <b>Mercado Pago</b> y te respondemos personas por WhatsApp, no un robot.']
@@ -549,9 +551,13 @@
     for (var i = 0; i < L.length; i++) if (String(L[i].id) === String(id)) return L[i];
     return null;
   }
-  function tank(color, sz) {
+  var SHAPES = {
+    tank: 'M13 3h4c0 4 1.4 6.5 3 6.5S23 7 23 3h4c0 5 1.2 8 4 10v23.5c0 1-.8 1.5-1.5 1.5h-19c-.7 0-1.5-.5-1.5-1.5V13c2.8-2 4-5 4-10z',
+    tee: 'M14.5 4 6 8.2l2.6 6.4 3.6-1.5v22.4c0 .8.6 1.5 1.5 1.5h12.6c.9 0 1.5-.7 1.5-1.5V13.1l3.6 1.5L34 8.2 25.5 4c-1 2.6-3 4-5.5 4s-4.5-1.4-5.5-4z'
+  };
+  function tank(color, sz, shape) {
     var st = /^#f/i.test(color) ? 'rgba(0,31,23,.35)' : 'rgba(0,0,0,.15)';
-    return '<svg viewBox="0 0 40 40" width="' + (sz || 40) + '" height="' + (sz || 40) + '" aria-hidden="true"><path d="M13 3h4c0 4 1.4 6.5 3 6.5S23 7 23 3h4c0 5 1.2 8 4 10v23.5c0 1-.8 1.5-1.5 1.5h-19c-.7 0-1.5-.5-1.5-1.5V13c2.8-2 4-5 4-10z" fill="' + color + '" stroke="' + st + '" stroke-width="1"/></svg>';
+    return '<svg viewBox="0 0 40 40" width="' + (sz || 40) + '" height="' + (sz || 40) + '" aria-hidden="true"><path d="' + (SHAPES[shape] || SHAPES.tank) + '" fill="' + color + '" stroke="' + st + '" stroke-width="1"/></svg>';
   }
 
   // Reemplaza los selectores del tema por: pack x4/x8, talle y cantidad de cada color.
@@ -627,7 +633,7 @@
       var h = '';
       for (k = 0; k < colors.length; k++) {
         var c = colors[k], q = st.counts[c] || 0;
-        h += '<div class="mf-pk-row">' + tank(hex2(c)) + '<span>' + esc(c) + '</span><div class="mf-pk-step">' +
+        h += '<div class="mf-pk-row">' + tank(hex2(c), 0, pk.shape) + '<span>' + esc(c) + '</span><div class="mf-pk-step">' +
           '<button type="button" data-c="' + esc(c) + '" data-d="-1" aria-label="Una ' + esc(c) + ' menos"' + (q ? '' : ' disabled') + '>−</button><output>' + q + '</output>' +
           '<button type="button" data-c="' + esc(c) + '" data-d="1" aria-label="Una ' + esc(c) + ' más"' + (full < n ? '' : ' disabled') + '>+</button></div></div>';
       }
@@ -639,7 +645,7 @@
       if (st.multi) {
         var u = units(); h = '';
         for (k = 0; k < u.length; k++) {
-          h += '<div class="mf-pk-u">' + tank(hex2(u[k].c), 26) + '<span>' + esc(u[k].c) + '</span>';
+          h += '<div class="mf-pk-u">' + tank(hex2(u[k].c), 26, pk.shape) + '<span>' + esc(u[k].c) + '</span>';
           for (var z = 0; z < sizes.length; z++) h += '<button type="button" class="mf-pk-sz' + (u[k].s === sizes[z] ? ' on' : '') + '" data-u="' + k + '" data-s="' + esc(sizes[z]) + '">' + esc(sizes[z]) + '</button>';
           h += '</div>';
         }
