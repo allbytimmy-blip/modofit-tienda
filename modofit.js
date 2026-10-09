@@ -21,7 +21,8 @@
     SHOW_STICKY: true,       // barra fija de compra abajo (home)
     HIDE_THEME_HOME: true,   // oculta lo que el tema muestra en la home debajo de nuestras secciones (banners, destacados)
     THEME_HOME_SELECTOR: '[data-store^="home-"], .js-home-sections-container, .js-home-slider',
-    FREE_SHIPPING: 80000,    // envío gratis desde
+    FREE_SHIPPING: 80000,    // envío gratis desde (configurado en Tiendanube)
+    FREE_SHIPPING_UNITS: 8,  // cómo se comunica: "llevando 8 prendas" (8 prendas siempre superan FREE_SHIPPING). 0 = muestra el monto
     TRANSFER_PCT: 0,         // % de descuento por transferencia. 0 = no se muestra (ej: 10)
     CUOTAS: 0,               // cuotas SIN interés. 0 = solo dice "tarjeta en cuotas" (ej: 3)
     // Dónde se insertan las secciones: después del primer elemento que coincida
@@ -54,7 +55,7 @@
     // En la página se eligen pack, talle y colores; en el carrito no se puede comprar algo que no sea múltiplo de 4.
     // off = % de la promo nativa "Descuento progresivo" de Tiendanube (solo se muestra; el descuento real lo hace la promo).
     PACK_BUILDER: [
-      { id: 357413455, url: '/productos/musculosa-morley-18110/', noun: 'musculosa', nouns: 'musculosas', packs: [4, 8], off: { 8: 15 } }
+      { id: 357413455, url: '/productos/musculosa-morley-18110/', noun: 'musculosa', nouns: 'musculosas', packs: [4, 8], off: { 8: 4 }, ship: { 8: true } }
     ],
     PACK_STEP: 4,            // el carrito exige múltiplos de esto en los productos del armador
     PACK_MAX_UNIT: 30000,    // seguro: si el precio cargado supera esto, el producto sigue a precio de pack y el armador no se activa
@@ -103,7 +104,7 @@
       try {
         var v = JSON.parse(el.getAttribute('data-variants')), min = 0;
         for (var j = 0; j < v.length; j++) if (v[j].available !== false && v[j].price_number && (!min || v[j].price_number < min)) min = v[j].price_number;
-        if (min && pkCfg(P[i].id) && min <= CFG.PACK_MAX_UNIT) min = Math.round(min * (CFG.PACK_STEP || 4));
+        if (min && pkCfg(P[i].id) && min <= CFG.PACK_MAX_UNIT) { min = Math.round(min * (CFG.PACK_STEP || 4)); pkLive = true; }
         if (min) P[i].x4 = min;
       } catch (e) {}
       // Foto principal del producto, la misma que muestra la tienda
@@ -118,7 +119,10 @@
     setUnits();
   }
   setUnits();
-  var FREE = 'Envío gratis desde ' + $m(CFG.FREE_SHIPPING);
+  var FREE_U = CFG.FREE_SHIPPING_UNITS;
+  var FREE_TAIL = FREE_U ? 'llevando ' + FREE_U + ' prendas' : 'desde ' + $m(CFG.FREE_SHIPPING);
+  var FREE = 'Envío gratis ' + FREE_TAIL;
+  var pkLive = false; // algún producto del armador ya está a precio por prenda
   var PAYS = CFG.CUOTAS ? CFG.CUOTAS + ' cuotas sin interés' : 'Mercado Pago o cuotas';
   var CHECKS = '<div class="mf-checks"><span>' + FREE + '</span><span>Cambio de talle</span><span>' + PAYS + '</span></div>';
 
@@ -131,7 +135,7 @@
 
   /* ---------- Barra de oferta (todas las páginas) ---------- */
   function bar() {
-    var items = ['<b>Pack x4</b> en toda la web', 'Desde <b>' + $m(minUnit) + '</b> c/u', 'Envío gratis desde <b>' + $m(CFG.FREE_SHIPPING) + '</b>', CFG.MIX_COLORS ? 'Combiná colores como quieras' : 'Envíos a todo el país'];
+    var items = ['<b>Pack x4</b> en toda la web', 'Desde <b>' + $m(minUnit) + '</b> c/u', (FREE_U ? 'Envío gratis llevando <b>' + FREE_U + ' prendas</b>' : 'Envío gratis desde <b>' + $m(CFG.FREE_SHIPPING) + '</b>'), CFG.MIX_COLORS ? 'Combiná colores como quieras' : 'Envíos a todo el país'];
     if (CFG.TRANSFER_PCT) items.splice(2, 0, '<b>' + CFG.TRANSFER_PCT + '% off</b> por transferencia');
     var one = '<span>' + items.join('</span><span>·</span><span>') + '</span><span>·</span>';
     var el = d.createElement('div');
@@ -205,7 +209,7 @@
 
   function trust() {
     return '<section class="mf-trust"><div class="mf-wrap">' +
-      '<div class="mf-t"><i>' + icon(IC.truck) + '</i><div><b>Envíos a todo el país</b><em>Envíos al país</em><span>Gratis desde ' + $m(CFG.FREE_SHIPPING) + ', con seguimiento</span></div></div>' +
+      '<div class="mf-t"><i>' + icon(IC.truck) + '</i><div><b>Envíos a todo el país</b><em>Envíos al país</em><span>Gratis ' + FREE_TAIL + ', con seguimiento</span></div></div>' +
       '<div class="mf-t"><i>' + icon(IC.swap) + '</i><div><b>Cambio de talle</b><em>Cambio de talle</em><span>Si el talle no te queda, lo cambiamos</span></div></div>' +
       '<div class="mf-t"><i>' + icon(IC.card) + '</i><div><b>Pago protegido</b><em>Pago protegido</em><span>Mercado Pago, cuotas o transferencia</span></div></div>' +
       '</div></section>';
@@ -284,8 +288,8 @@
       ['¿Qué talle me queda?', 'Cada producto tiene su <b>guía de talles</b> en las fotos. La térmica es una prenda al cuerpo: si la querés menos ajustada, elegí un talle más. Y si no te queda, <b>lo cambiamos</b>.'],
       ['¿Y si el talle no me queda?', '<b>Lo cambiamos.</b> Escribinos por WhatsApp con tu número de pedido y te explicamos cómo hacerlo.'],
       ['¿Cuánto tarda en llegar mi pedido?', 'Preparamos tu pedido en <b>3 a 7 días hábiles</b> y te pasamos el seguimiento apenas sale. Después depende del correo y de tu zona.'],
-      ['¿El envío es gratis?', 'Sí, en compras <b>desde ' + $m(CFG.FREE_SHIPPING) + '</b>, o sea llevando 2 packs. En compras menores, el costo se calcula en el checkout con tu código postal.'],
-      CFG.MIX_COLORS ? ['¿Puedo combinar colores en el pack?', 'Sí, <b>combinás colores como quieras</b> dentro del mismo pack.'] : ['¿Cómo es el pack?', 'Son <b>4 prendas del mismo color y talle</b>. Si querés distintos colores, sumá un pack de cada uno: con 2 packs el envío es gratis.'],
+      ['¿El envío es gratis?', FREE_U ? 'Sí, <b>llevando ' + FREE_U + ' prendas</b>: un pack x8 o dos packs x4. Con un solo pack x4, el costo se calcula en el checkout con tu código postal.' : 'Sí, en compras <b>desde ' + $m(CFG.FREE_SHIPPING) + '</b>, o sea llevando 2 packs. En compras menores, el costo se calcula en el checkout con tu código postal.'],
+      pkLive ? ['¿Puedo combinar colores y talles?', 'En las <b>musculosas, sí</b>: armás tu pack x4 o x8 eligiendo el color y el talle de cada una. Las térmicas vienen de a 4 del mismo color y talle.'] : CFG.MIX_COLORS ? ['¿Puedo combinar colores en el pack?', 'Sí, <b>combinás colores como quieras</b> dentro del mismo pack.'] : ['¿Cómo es el pack?', 'Son <b>4 prendas del mismo color y talle</b>. Si querés distintos colores, sumá un pack de cada uno: con 2 packs el envío es gratis.'],
       ['¿Qué medios de pago aceptan?', '<b>Mercado Pago, tarjeta en cuotas' + (CFG.CUOTAS ? ' (' + CFG.CUOTAS + ' sin interés)' : '') + ' y transferencia' + (CFG.TRANSFER_PCT ? ' con ' + CFG.TRANSFER_PCT + '% off' : '') + '.</b> Elegís el que prefieras en el checkout.'],
       ['¿Es seguro comprar en Modo Fit?', 'Sí. Somos una marca argentina, los pagos se procesan por <b>Mercado Pago</b> y te respondemos personas por WhatsApp, no un robot.']
     ];
@@ -475,7 +479,7 @@
     if (row && row.parentNode) {
       var t = d.createElement('div'); t.className = 'mf';
       t.innerHTML = '<div class="mf-pdp-trust">' +
-        '<div class="mf-pt"><i>' + icon(IC.truck, '#008D60') + '</i><span><b>Envío gratis</b> desde ' + $m(CFG.FREE_SHIPPING) + '</span></div>' +
+        '<div class="mf-pt"><i>' + icon(IC.truck, '#008D60') + '</i><span><b>Envío gratis</b> ' + FREE_TAIL + '</span></div>' +
         '<div class="mf-pt"><i>' + icon(IC.swap, '#008D60') + '</i><span><b>Cambio de talle:</b> si no te queda, lo cambiamos</span></div>' +
         '<div class="mf-pt"><i>' + icon(IC.card, '#008D60') + '</i><span><b>Pago protegido</b> con Mercado Pago</span></div>' +
         (CFG.WHATSAPP ? '<a class="mf-pdp-wa" target="_blank" rel="noopener" data-mf="pdp-wa" href="' + wa('Hola! Tengo una duda con el talle de ' + name) + '">¿Dudas con el talle? Escribinos por WhatsApp</a>' : '') +
@@ -576,7 +580,7 @@
       if (V[i].compare_at_price_number > cmp) cmp = V[i].compare_at_price_number;
     }
     if (!unit || unit > CFG.PACK_MAX_UNIT) return null;
-    var PK = pk.packs && pk.packs.length ? pk.packs : [4], OFF = pk.off || {};
+    var PK = pk.packs && pk.packs.length ? pk.packs : [4], OFF = pk.off || {}, SHIP = pk.ship || {};
     function total(n) { return Math.round(unit * n * (1 - (OFF[n] || 0) / 100)); }
     function hex2(c) { var h = hex[c] || '#999'; var m = h.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/); return m ? '#' + [m[1], m[2], m[3]].map(function (x) { return ('0' + (+x).toString(16)).slice(-2); }).join('') : h; }
 
@@ -596,8 +600,8 @@
     var opts = '';
     for (i = 0; i < PK.length; i++) {
       var n = PK[i], save = unit * n - total(n);
-      opts += '<button type="button" class="mf-pk-opt" data-n="' + n + '">' + (save > 0 ? '<em>Ahorrás ' + $m(save) + '</em>' : '') +
-        '<b>Pack x' + n + '</b><span>' + $m(total(n)) + '</span><small>' + $m(total(n) / n) + ' c/u</small></button>';
+      opts += '<button type="button" class="mf-pk-opt" data-n="' + n + '">' + (SHIP[n] ? '<em>Envío gratis</em>' : save > 0 ? '<em>Ahorrás ' + $m(save) + '</em>' : '') +
+        '<b>Pack x' + n + '</b><span>' + $m(total(n)) + '</span><small>' + $m(total(n) / n) + ' c/u' + (SHIP[n] ? ' + envío gratis' : '') + '</small></button>';
     }
     var sz = '';
     for (i = 0; i < sizes.length; i++) sz += '<button type="button" class="mf-pk-sz" data-s="' + esc(sizes[i]) + '">' + esc(sizes[i]) + '</button>';
@@ -614,7 +618,7 @@
     function render() {
       var full = sum(), n = st.n, t = total(n), c2 = cmp ? cmp * n : 0, pct = c2 > t ? Math.round((1 - t / c2) * 100) : 0;
       priceEl.innerHTML = '<b>' + $m(t) + '</b>' + (pct > 0 ? '<s>' + $m(c2) + '</s><em>' + pct + '% OFF</em>' : '') +
-        '<small>Pack x' + n + ' · ' + $m(t / n) + ' cada ' + esc(pk.noun || 'prenda') + '</small>';
+        '<small>Pack x' + n + ' · ' + $m(t / n) + ' cada ' + esc(pk.noun || 'prenda') + (SHIP[n] ? ' · <b style="font:inherit;color:#006947">envío gratis</b>' : '') + '</small>';
       var ob = el.querySelectorAll('.mf-pk-opt');
       for (var k = 0; k < ob.length; k++) ob[k].className = 'mf-pk-opt' + (+ob[k].getAttribute('data-n') === n ? ' on' : '');
       var sb = el.querySelectorAll('.mf-pk-one .mf-pk-sz');
@@ -765,10 +769,10 @@
       for (i = 0; i < list.length; i++) {
         var o = by[list[i]];
         if (o.q % STEP) { bad = o; break; }
-        var off = o.pk.off && o.pk.off[o.q] || 0;
-        for (var k in (o.pk.off || {})) if (o.q >= +k && o.pk.off[k] > off) off = o.pk.off[k];
+        var shipOk = false;
+        for (var k in (o.pk.ship || {})) if (o.q >= +k && o.pk.ship[k]) shipOk = true;
         var inP = (o.pk.packs || [STEP]).indexOf(o.q) >= 0;
-        okTxt += (okTxt ? '<br>' : '') + '✓ ' + (inP ? 'Pack x' + o.q + ' de ' + esc(o.pk.nouns || 'prendas') + ' listo' : o.q + ' ' + esc(o.pk.nouns || 'prendas') + ' (' + o.q / STEP + ' packs x' + STEP + ')') + (off ? ' · ' + off + '% OFF aplicado' : '');
+        okTxt += (okTxt ? '<br>' : '') + '✓ ' + (inP ? 'Pack x' + o.q + ' de ' + esc(o.pk.nouns || 'prendas') + ' listo' : o.q + ' ' + esc(o.pk.nouns || 'prendas') + ' (' + o.q / STEP + ' packs x' + STEP + ')') + (shipOk ? ' · envío gratis' : '');
       }
       if (!list.length) { if (box) box.parentNode.removeChild(box); btn.classList.remove('mf-pk-block'); continue; }
       if (!box) {
