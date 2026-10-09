@@ -740,12 +740,12 @@
     return { price: priceEl, label: function () { return 'Pack x' + st.n; }, anchor: el };
   }
 
-  // ¿El producto ya está cargado por prenda? (lo sabe el carrito del tema)
-  function pkUnitOk(id) {
+  // Precio de una línea del carrito según el tema (null si no se sabe)
+  function lineUnit(itemId) {
     var it = window.LS && LS.cart && LS.cart.items ? LS.cart.items : null;
-    if (!it) return true;
-    for (var i = 0; i < it.length; i++) if (String(it[i].product_id) === String(id)) return it[i].unit_price / 100 <= CFG.PACK_MAX_UNIT;
-    return true;
+    if (!it) return null;
+    for (var i = 0; i < it.length; i++) if (String(it[i].item_id) === String(itemId)) return it[i].unit_price / 100;
+    return null;
   }
   // Carrito: los productos del armador solo se compran de a múltiplos de PACK_STEP
   function cartGuard() {
@@ -758,7 +758,10 @@
       var lines = f.querySelectorAll('.js-cart-item[data-store^="cart-item-"]'), by = {}, list = [];
       for (var i = 0; i < lines.length; i++) {
         var id = lines[i].getAttribute('data-store').replace('cart-item-', ''), pk = pkCfg(id);
-        if (!pk || lines[i].getAttribute('data-gift') === 'true' || !pkUnitOk(id)) continue;
+        if (!pk || lines[i].getAttribute('data-gift') === 'true') continue;
+        // Línea agregada antes de pasar el producto a precio por prenda: hay que volver a armar el pack
+        var lu = lineUnit(lines[i].getAttribute('data-item-id'));
+        if (lu && lu > CFG.PACK_MAX_UNIT) { if (!by['old' + id]) { by['old' + id] = { pk: pk, q: 0, old: true }; list.unshift('old' + id); } continue; }
         if (!lines[i].classList.contains('mf-pk-line')) lines[i].classList.add('mf-pk-line');
         var qi = lines[i].querySelector('.js-cart-quantity-input'), q = qi ? parseInt(qi.value, 10) || 0 : 0;
         if (qi && !qi.readOnly) qi.readOnly = true;
@@ -768,7 +771,7 @@
       var box = f.querySelector('.mf-pk-cart'), bad = null, okTxt = '';
       for (i = 0; i < list.length; i++) {
         var o = by[list[i]];
-        if (o.q % STEP) { bad = o; break; }
+        if (o.old || o.q % STEP) { bad = o; break; }
         var shipOk = false;
         for (var k in (o.pk.ship || {})) if (o.q >= +k && o.pk.ship[k]) shipOk = true;
         var inP = (o.pk.packs || [STEP]).indexOf(o.q) >= 0;
@@ -781,7 +784,11 @@
         anchor.parentNode.insertBefore(box, anchor);
       }
       var html, cls;
-      if (bad) {
+      if (bad && bad.old) {
+        cls = 'mf-pk-cart bad';
+        html = 'Actualizamos los packs de ' + esc(bad.pk.nouns || 'prendas') + ': ahora elegís el color y el talle de cada una. Eliminá el pack de tu carrito y armalo de nuevo.' +
+          '<br><a href="' + esc(bad.pk.url) + '" data-mf="cart-rebuild">Armar mi pack</a>';
+      } else if (bad) {
         var miss = STEP - bad.q % STEP;
         cls = 'mf-pk-cart bad';
         html = 'Los packs son de ' + STEP + ' ' + esc(bad.pk.nouns || 'prendas') + '. Te ' + (miss === 1 ? 'falta 1 ' + esc(bad.pk.noun || 'prenda') : 'faltan ' + miss + ' ' + esc(bad.pk.nouns || 'prendas')) + ' para completar tu pack.' +
