@@ -54,9 +54,10 @@
     // En la página se eligen pack, talle y colores; en el carrito no se puede comprar algo que no sea múltiplo de 4.
     // off = % de la promo nativa "Descuento progresivo" de Tiendanube (solo se muestra; el descuento real lo hace la promo).
     PACK_BUILDER: [
-      { id: 373116180, url: '/productos/prueba-arma-tu-pack-no-comprar-fszta/', noun: 'musculosa', nouns: 'musculosas', packs: [4, 8], off: { 8: 15 } }
+      { id: 357413455, url: '/productos/musculosa-morley-18110/', noun: 'musculosa', nouns: 'musculosas', packs: [4, 8], off: { 8: 15 } }
     ],
     PACK_STEP: 4,            // el carrito exige múltiplos de esto en los productos del armador
+    PACK_MAX_UNIT: 30000,    // seguro: si el precio cargado supera esto, el producto sigue a precio de pack y el armador no se activa
     REVIEWS_PAGE: 6,
     REVIEWS_EMPTY: 'hide'    // sin opiniones: 'hide' oculta la sección, 'cta' muestra "dejá tu opinión"
   };
@@ -102,7 +103,7 @@
       try {
         var v = JSON.parse(el.getAttribute('data-variants')), min = 0;
         for (var j = 0; j < v.length; j++) if (v[j].available !== false && v[j].price_number && (!min || v[j].price_number < min)) min = v[j].price_number;
-        if (min && pkCfg(P[i].id)) min = Math.round(min * (CFG.PACK_STEP || 4));
+        if (min && pkCfg(P[i].id) && min <= CFG.PACK_MAX_UNIT) min = Math.round(min * (CFG.PACK_STEP || 4));
         if (min) P[i].x4 = min;
       } catch (e) {}
       // Foto principal del producto, la misma que muestra la tienda
@@ -559,7 +560,7 @@
       if (V[i].price_number && (!unit || V[i].price_number < unit)) unit = V[i].price_number;
       if (V[i].compare_at_price_number > cmp) cmp = V[i].compare_at_price_number;
     }
-    if (!unit) return null;
+    if (!unit || unit > CFG.PACK_MAX_UNIT) return null;
     var PK = pk.packs && pk.packs.length ? pk.packs : [4], OFF = pk.off || {};
     function total(n) { return Math.round(unit * n * (1 - (OFF[n] || 0) / 100)); }
     function hex2(c) { var h = hex[c] || '#999'; var m = h.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/); return m ? '#' + [m[1], m[2], m[3]].map(function (x) { return ('0' + (+x).toString(16)).slice(-2); }).join('') : h; }
@@ -720,6 +721,13 @@
     return { price: priceEl, label: function () { return 'Pack x' + st.n; }, anchor: el };
   }
 
+  // ¿El producto ya está cargado por prenda? (lo sabe el carrito del tema)
+  function pkUnitOk(id) {
+    var it = window.LS && LS.cart && LS.cart.items ? LS.cart.items : null;
+    if (!it) return true;
+    for (var i = 0; i < it.length; i++) if (String(it[i].product_id) === String(id)) return it[i].unit_price / 100 <= CFG.PACK_MAX_UNIT;
+    return true;
+  }
   // Carrito: los productos del armador solo se compran de a múltiplos de PACK_STEP
   function cartGuard() {
     if (!CFG.PACK_BUILDER || !CFG.PACK_BUILDER.length) return;
@@ -731,7 +739,7 @@
       var lines = f.querySelectorAll('.js-cart-item[data-store^="cart-item-"]'), by = {}, list = [];
       for (var i = 0; i < lines.length; i++) {
         var id = lines[i].getAttribute('data-store').replace('cart-item-', ''), pk = pkCfg(id);
-        if (!pk || lines[i].getAttribute('data-gift') === 'true') continue;
+        if (!pk || lines[i].getAttribute('data-gift') === 'true' || !pkUnitOk(id)) continue;
         if (!lines[i].classList.contains('mf-pk-line')) lines[i].classList.add('mf-pk-line');
         var qi = lines[i].querySelector('.js-cart-quantity-input'), q = qi ? parseInt(qi.value, 10) || 0 : 0;
         if (qi && !qi.readOnly) qi.readOnly = true;
@@ -781,7 +789,7 @@
       var t = e.target, it = t.closest ? t.closest('.js-item-product[data-product-id]') : null;
       if (!it) return;
       var pk = pkCfg(it.getAttribute('data-product-id'));
-      if (!pk || !t.closest('.js-addtocart, .js-quickshop-modal-open, .js-open-quickshop, .js-product-form input[type="submit"], .js-product-form button, [data-component="product-list-item.add-to-cart"]')) return;
+      if (!pk || !it.getAttribute('data-mf-pk-on') || !t.closest('.js-addtocart, .js-quickshop-modal-open, .js-open-quickshop, .js-product-form input[type="submit"], .js-product-form button, [data-component="product-list-item.add-to-cart"]')) return;
       e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation();
       track('pk-list-quick'); location.href = pk.url;
     }, true);
@@ -793,18 +801,28 @@
     for (var i = 0; i < L.length; i++) {
       var its = d.querySelectorAll('.js-item-product[data-product-id="' + L[i].id + '"]');
       for (var j = 0; j < its.length; j++) {
-        var els = its[j].querySelectorAll('.js-price-display, .js-compare-price-display');
+        var it = its[j], main = it.querySelector('.js-price-display');
+        if (!main) continue;
+        // El precio principal decide: si todavía es de pack (no se pasó a precio por prenda), no se toca nada
+        var mc = main.textContent.replace(/\s+/g, ' ').trim();
+        if (mc !== main.getAttribute('data-mf-pk')) {
+          var mv = num(mc);
+          if (!mv || mv > CFG.PACK_MAX_UNIT) { it.removeAttribute('data-mf-pk-on'); continue; }
+          it.setAttribute('data-mf-pk-on', '1');
+        }
+        var els = it.querySelectorAll('.js-price-display, .js-compare-price-display');
         for (var k = 0; k < els.length; k++) {
           var e = els[k], cur = e.textContent.replace(/\s+/g, ' ').trim();
           if (!cur || cur === e.getAttribute('data-mf-pk')) continue;
           var v = num(cur); if (!v) continue;
           var t = $m(v * STEP); e.textContent = t; e.setAttribute('data-mf-pk', t);
         }
-        var qb = its[j].querySelectorAll('input.js-addtocart[type="submit"]');
+        var qb = it.querySelectorAll('input.js-addtocart[type="submit"]');
         for (k = 0; k < qb.length; k++) if (qb[k].value !== 'Armar mi pack') qb[k].value = 'Armar mi pack';
       }
     }
   }
+
 
   /* ---------- Footer: solo menú, redes y datos legales ---------- */
   function footer() {
